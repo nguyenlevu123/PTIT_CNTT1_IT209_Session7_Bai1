@@ -1,38 +1,49 @@
-Bài 1: Khảo sát FHS và Phân quyền File/Folder nâng cao
-Mục tiêu
-Nắm vững cấu trúc thư mục tiêu chuẩn theo FHS (Filesystem Hierarchy Standard) trên Linux.
-Thực hành phân quyền tập tin và thư mục với chmod (phân quyền OCTAL) và chown nâng cao.
-1. Khảo sát Cấu trúc Thư mục FHS (Filesystem Hierarchy Standard)
-Thư mục	Mục đích sử dụng
-/etc	Chứa các tệp tin cấu hình hệ thống (Nginx, SSH, Sysctl, v.v.).
-/var/log	Chứa các tệp tin nhật ký hoạt động (System logs, App logs, Web logs).
-/bin & /usr/bin	Chứa các lệnh thực thi nhị phân cơ bản cho người dùng hệ thống.
-/opt	Chứa các phần mềm và ứng dụng của bên thứ 3 (Third-party applications).
-/home	Thư mục cá nhân của người dùng thông thường trong hệ thống.
-2. Các Bước Thực hiện Phân quyền Nâng cao
-Bước 1: Khởi tạo thư mục và tệp tin dự án
-sudo mkdir -p /opt/secure-app/
-sudo touch /opt/secure-app/config.env
-sudo touch /opt/secure-app/app.py
-Bước 2: Thiết lập quyền sở hữu và phân quyền truy cập
-# Gán quyền sở hữu cho user sysadmin và group devops
-sudo chown -R sysadmin:devops /opt/secure-app
+Bài 1: Quản lý người dùng giới hạn và Truyền tải dữ liệu qua SFTP trên Windows
+1. Mục tiêu
+Tạo tài khoản người dùng giới hạn phục vụ cho các tác vụ truyền nhận tệp tin từ xa.
+Làm chủ quy trình cài đặt và kết nối SFTP bằng phần mềm client trên hệ điều hành Windows (Bitvise SSH Client, WinSCP hoặc FileZilla).
+Thực hiện truyền tải tệp tin nhật ký (logs) an toàn từ máy chủ Linux về máy tính cá nhân.
+2. Quá trình thực hiện trên VPS (Linux)
+Bước 1: Khởi tạo tài khoản người dùng sftp-user
 
-# Cấu hình phân quyền chmod (OCTAL)
-# 750 cho thư mục /opt/secure-app (rwxr-x---)
-sudo chmod 750 /opt/secure-app
+sudo adduser sftp-user
+(Tiến hành nhập mật khẩu mạnh và điền các thông tin theo yêu cầu của hệ thống)
 
-# 640 cho config.env (rw-r----) - Chỉ owner đọc/ghi, group chỉ đọc, người khác bị cấm
-sudo chmod 640 /opt/secure-app/config.env
+Bước 2: Tạo thư mục log giả lập và gán quyền
 
-# 755 cho app.py (rwxr-xr-x) - Cho phép thực thi
-sudo chmod 755 /opt/secure-app/app.py
-3. Kiểm tra Trạng thái (ls -la /opt/secure-app)
-$ ls -la /opt/secure-app
-total 12
-drwxr-x--- 2 sysadmin devops 4096 Oct  7 11:15 .
-drwxr-xr-x 4 root     root   4096 Oct  7 11:14 ..
--rwxr-xr-x 1 sysadmin devops    0 Oct  7 11:15 app.py
--rw-r----- 1 sysadmin devops    0 Oct  7 11:15 config.env
-4. Kết luận
-Việc phân quyền theo chuẩn 750/640 giúp cô lập file cấu hình nhạy cảm config.env, ngăn chặn các user không thuộc nhóm devops đọc dữ liệu bí mật.
+# Tạo thư mục
+sudo mkdir -p /var/log/app-backup/
+
+# Tạo file log giả lập và ghi nội dung
+sudo touch /var/log/app-backup/backup-check.log
+sudo bash -c 'echo "Backup status: SUCCESS at $(date)" > /var/log/app-backup/backup-check.log'
+
+# Phân quyền sở hữu và quyền hạn
+sudo chown -R root:sftp-user /var/log/app-backup
+sudo chmod 750 /var/log/app-backup
+sudo chmod 640 /var/log/app-backup/backup-check.log
+Bước 3: Kiểm tra người dùng và quyền hạn tệp tin
+
+id sftp-user
+ls -l /var/log/app-backup/backup-check.log
+Kết quả: User sftp-user không thuộc nhóm sudo (không có quyền chạy lệnh đặc quyền). Tệp tin có quyền đọc đối với group sftp-user.
+
+3. Quá trình thực hiện trên Windows (Sử dụng SFTP Client)
+Sử dụng phần mềm SFTP (ví dụ: Bitvise SSH Client) để kết nối:
+
+Mở phần mềm Bitvise SSH Client trên Windows.
+Điền IP của VPS vào ô Host.
+Điền sftp-user vào ô Username.
+Chọn Method là Password và nhập mật khẩu của sftp-user.
+Nhấp Log in.
+Khi kết nối thành công, chọn New SFTP Window, tìm đến thư mục /var/log/app-backup/ ở khung bên phải (Remote files).
+Kéo thả tệp backup-check.log sang thư mục máy tính ở khung bên trái (Local files).
+4. Bằng chứng kết quả (Ảnh chụp màn hình)
+(Chèn ảnh chụp màn hình giao diện kết nối SFTP từ Windows bằng Bitvise/WinSCP đã kết nối thành công và tải được file log về máy tính cá nhân vào bên dưới)
+
+Giao diện SFTP kết nối thành công và tải file
+
+5. Kiểm tra nội dung file đã tải về trên Windows
+Mở file backup-check.log đã được tải về trên máy tính Windows bằng trình soạn thảo văn bản (như Notepad) để xác nhận nội dung file khớp với file gốc trên VPS:
+
+Backup status: SUCCESS at ...
